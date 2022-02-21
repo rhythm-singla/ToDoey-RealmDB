@@ -7,37 +7,32 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 
-class CategoryyViewController: UITableViewController {
 
-    var categories = [Categoryy]()
+class CategoryViewController: UITableViewController {
+    let realm = try! Realm()
     
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
-    
-    let filePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-//    print(filePath)
+    var categories: Results<Category>?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadData()
+        loadCategories()
     }
     
     
-    func loadData(with request: NSFetchRequest<Categoryy> = Categoryy.fetchRequest()){
-        do{
-            categories = try context.fetch(request)
-        }catch{
-            print("Error loading data: \(error)")
-        }
+    func loadCategories(){
+        categories = realm.objects(Category.self)
         tableView.reloadData()
     }
 
-    func saveData(){
+    func saveData(category: Category){
         do{
-            try context.save()
+            try realm.write {
+                realm.add(category)
+            }
         }catch{
-            print("Error saving context: \(error)")
+            print("Error saving to realm: \(error)")
         }
        self.tableView.reloadData()
     }
@@ -51,10 +46,10 @@ class CategoryyViewController: UITableViewController {
             print("Category added successfully")
             print(textField.text ?? "Error adding category!")
             if let text = textField.text{
-                let category = Categoryy(context: self.context)
+                let category = Category()
                 category.name = text
-                self.categories.append(category)
-                self.saveData()
+//                self.categories.append(category)
+                self.saveData(category: category)
             }
         }
         alert.addTextField { alertTextField in
@@ -67,12 +62,12 @@ class CategoryyViewController: UITableViewController {
     
 //     MARK: - TABLE VIEW DATASOURCE METHODS
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return categories.count
+        return categories?.count ?? 1
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CategoryCell", for: indexPath)
-        cell.textLabel?.text = categories[indexPath.row].name
+        cell.textLabel?.text = categories?[indexPath.row].name ?? "No category assigned"
 
         return cell
     }
@@ -92,7 +87,7 @@ class CategoryyViewController: UITableViewController {
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         let destinationVC = segue.destination as! ToDoeyViewController
         if let indexPath = tableView.indexPathForSelectedRow{
-            destinationVC.selectedCategoryy = categories[indexPath.row]
+            destinationVC.selectedCategory = categories?[indexPath.row]
         }
     }
     
